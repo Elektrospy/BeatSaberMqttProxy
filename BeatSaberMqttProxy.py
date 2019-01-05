@@ -6,41 +6,69 @@ import json
 import logging
 import paho.mqtt.client as mqtt
 
-logger = logging.getLogger(__name__)
-
-
 def on_connect(client, userdata, flags, rc):
-    logger.debug("Connected with result code " + str(rc))
+    print("Connected with result code " + str(rc))
 
 
 def on_publish(client, userdata, mid):
-    logger.debug("mid: "+str(mid))
+    print("mid: "+str(mid))
 
 
 def on_message(client, userdata, message):
     msg = message.payload.decode("utf-8")
-    logger.debug('received message: {}'.format(msg))
+    print('received message: {}'.format(msg))
 
 
 def parse_json(input_json):
     json_content = json.loads(input_json)
     current_event = json_content["event"]
-    if current_event == "noteCut":
-        event_note_cut()
+    if current_event == "noteCut" or current_event == "noteFullyCut":
+        event_note_cut(json_content["noteCut"])
     elif current_event == "bombCut":
         event_bomb_cut()
     elif current_event == "beatmapEvent":
         event_beat_map(json_content["beatmapEvent"])
-    # else:
-    #    print("other event")
+    else:
+        print("other event: " + current_event)
 
 
-def event_note_cut():
-    logger.info("Note Cut")
+def event_note_cut(note_cut_object):
+    print("Note Cut")
+    event_note_cut_parse(note_cut_object)
+
+
+def event_note_cut_parse(note_cut_object):
+    saber_type = note_cut_object["saberType"]
+    note_type = note_cut_object["noteType"]
+    light_value = 0
+    if note_type == "NoteA":
+        light_value = 7
+    elif note_type == "NoteB":
+        light_value = 3
+
+    if saber_type == "SaberA":
+        trigger_saber_a(light_value)
+    elif saber_type == "SaberB":
+        trigger_saber_b(light_value)
+
+
+def trigger_saber_a(light_value):
+    print("saber a: " + str(light_value))
+    mqtt_publish_saber("saber/a", light_value)
+
+
+def trigger_saber_b(light_value):
+    print("saber b: " + str(light_value))
+    mqtt_publish_saber("saber/b", light_value)
+
+
+def mqtt_publish_saber(saber_type, light_value):
+    publish_path = 'beatsaber/' + str(saber_type)
+    client.publish(publish_path, light_value, qos=0, retain=True)
 
 
 def event_bomb_cut():
-    logger.info("Bomb Cut")
+    print("Bomb Cut")
 
 
 def event_beat_map(event_object):
@@ -71,27 +99,27 @@ def mqtt_publish_light(light_type, light_value):
 
 def trigger_light_small(value):
     mqtt_publish_light(str('small'), str(value))
-    logger.info("light small " + str(value))
+    print("light small " + str(value))
 
 
 def trigger_light_big(value):
     mqtt_publish_light(str('big'), str(value))
-    logger.info("light big " + str(value))
+    print("light big " + str(value))
 
 
 def trigger_light_center(value):
     mqtt_publish_light(str('center'), str(value))
-    logger.info("light center " + str(value))
+    print("light center " + str(value))
 
 
 def trigger_light_left(value):
     mqtt_publish_light(str('left'), str(value))
-    logger.info("light left " + str(value))
+    print("light left " + str(value))
 
 
 def trigger_light_right(value):
     mqtt_publish_light(str('right'), str(value))
-    logger.info("light right " + str(value))
+    print("light right " + str(value))
 
 
 async def loop_websocket():
@@ -103,9 +131,6 @@ async def loop_websocket():
 
 
 if __name__ == '__main__':
-    formatter = "[%(asctime)s] %(name)s {%(filename)s:%(lineno)d} %(levelname)s - %(message)s"
-    logging.basicConfig(level=logging.DEBUG, format=formatter)
-
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
