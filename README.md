@@ -24,6 +24,8 @@ Currently the Proxy does only publish the following (lighting) events:
   * beatsaber/light/center
   * beatsaber/light/left
   * beatsaber/light/right
+  * beatsaber/saber/a
+  * beatsaber/saber/b
 * Payload:
   * Based on the events values from the Steam Community Modding Guide:
     * [Beat Saber Modding Guide](https://steamcommunity.com/sharedfiles/filedetails/?id=1377190061)
